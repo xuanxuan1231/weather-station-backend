@@ -10,7 +10,10 @@ import data
 
 app = Flask(__name__)
 
-token = os.environ['TOKEN']
+try:
+    token = os.environ['TOKEN']
+except:
+    token = "114514"
 
 
 @app.route("/")
@@ -21,15 +24,67 @@ def home():
                  "Accept": "application/vnd.github+json",
                  "X-GitHub-Api-Version": "2022-11-28"},
         json={
-            "text": "# Weather Data API\n"
-                    "This is a simple API to manage weather data.\n"
-                    ""
-                    "> [!IMPORTANT]\n"
-                    "> **Note:** This API is designed for educational purposes and may not be suitable for production use.\n",
+            "text": "# 天气数据 API\n"
+                    "这是一个天气数据 API。由 Upstash 提供 Redis 数据库服务。\n"
+                    "## API 端点\n"
+                    "所有的 API 端点同时可以使用 `POST` 和 `GET` 方法。`POST` 方法用于上报数据，`GET` 方法用于获取数据。\n"
+                    "| 数据 | 端点 |\n"
+                    "| ---- | ---- |\n"
+                    "| 温度 | `/api/temp` |\n"
+                    "| 湿度 | `/api/humidity` |\n"
+                    "| 气压 | `/api/pressure` |\n"
+                    "| PM2.5 | `/api/pm2_5` |\n"
+                    "## 数据上报\n"
+                    "使用 `POST` 方法。携带请求头 `Content-Type: application/json` 和 `Token`。\n"
+                    "### 请求体\n"
+                    "```json\n"
+                    "{\n"
+                    "  \"temp\": 25.5,\n"
+                    "}\n"
+                    "```\n"
+                    "`temp` 以实际请求的 API 端点为准。\n"
+                    "### 响应体\n"
+                    "遇到错误：\n"
+                    "```json\n"
+                    "{\n"
+                    "  \"status\": 1,\n"
+                    "  \"error\": \"Invalid token\"\n"
+                    "}\n"
+                    "```\n"
+                    "`error` 以实际错误信息为准。\n"
+                    "或，正常时：\n"
+                    "```json\n"
+                    "{\n"
+                    "  \"status\": 0,\n"
+                    "  \"temp\": 25.5,\n"
+                    "  \"time\": \"2023-10-01T12:00:00\"\n"
+                    "}\n"
+                    "```\n"
+                    "`temp` 以实际请求的 API 端点为准。`25.5` 以实际上报的数据为准。\n"
+                    "## 数据获取\n"
+                    "使用 `GET` 方法。不需要特别携带请求头。\n"
+                    "注意跨域请求。\n"
+                    "### 响应体\n"
+                    "遇到错误：\n"
+                    "```json\n"
+                    "{\n"
+                    "  \"status\": 1,\n"
+                    "  \"error\": \"No data available\"\n"
+                    "}\n"
+                    "```\n"
+                    "`error` 以实际错误信息为准。\n"
+                    "或，正常时：\n"
+                    "```json\n"
+                    "{\n"
+                    "  \"status\": 0,\n"
+                    "  \"temp\": 25.5,\n"
+                    "  \"time\": \"2023-10-01T12:00:00\"\n"
+                    "}\n"
+                    "```\n"
+                    "`temp` 以实际请求的 API 端点为准。`25.5` 以实际存储的数据为准。\n",
             "mode": "gfm",
         })
     if response.status_code == 200:
-        print(response.text)
         return make_response(render_template("main.html", contents=response.text))
     return "Weather API", 200
 
@@ -140,7 +195,8 @@ def get_pm2_5():
 
 @app.after_request
 def after_request(response):
-    response.headers.add('Access-Control-Allow-Origin', os.environ['ORIGIN'])
+
+    response.headers.add('Access-Control-Allow-Origin', '*')
     response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
     response.headers.add('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
     return response
