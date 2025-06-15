@@ -1,17 +1,37 @@
+import os
 import datetime
 
 import flask
-from flask import Flask, request, jsonify
+import requests
+from flask import Flask, request, jsonify, render_template, stream_template
 from flask import make_response
 
 import data
 
 app = Flask(__name__)
 
+token = os.environ['TOKEN']
+
 
 @app.route("/")
 def home():
-    return "Hello, World!"
+    response = requests.post(
+        "https://api.github.com/markdown",
+        headers={"Content-Type": "application/json",
+                 "Accept": "application/vnd.github+json",
+                 "X-GitHub-Api-Version": "2022-11-28"},
+        json={
+            "text": "# Weather Data API\n"
+                    "This is a simple API to manage weather data.\n"
+                    ""
+                    "> [!IMPORTANT]\n"
+                    "> **Note:** This API is designed for educational purposes and may not be suitable for production use.\n",
+            "mode": "gfm",
+        })
+    if response.status_code == 200:
+        print(response.text)
+        return make_response(render_template("main.html", contents=response.text))
+    return "Weather API", 200
 
 
 @app.route("/health")
@@ -22,6 +42,8 @@ def health_check():
 @app.route("/api/temp", methods=["POST"])
 def add_temp():
     temp = request.json["temp"]
+    if request.headers["Token"] != token:
+        return jsonify({"status": 1, "error": "Invalid token"}), 401
     time = datetime.datetime.now().isoformat()
     if not temp:
         return jsonify({"status": 1, "error": "temp is required"}), 400
@@ -44,6 +66,8 @@ def get_temp():
 def add_humidity():
     humidity = request.json["humidity"]
     time = datetime.datetime.now().isoformat()
+    if request.headers["Token"] != token:
+        return jsonify({"status": 1, "error": "Invalid token"}), 401
     if not humidity:
         return jsonify({"status": 1, "error": "humidity is required"}), 400
     data.add_humidity(humidity, time)
@@ -69,6 +93,8 @@ def get_humidity():
 def add_pressure():
     pressure = request.json["pressure"]
     time = datetime.datetime.now().isoformat()
+    if request.headers["Token"] != token:
+        return jsonify({"status": 1, "error": "Invalid token"}), 401
     if not pressure:
         return jsonify({"status": 1, "error": "pressure is required"}), 400
     data.add_pressure(pressure, time)
@@ -94,6 +120,8 @@ def get_pressure():
 def add_pm2_5():
     pm2_5 = request.json["pm2_5"]
     time = datetime.datetime.now().isoformat()
+    if request.headers["Token"] != token:
+        return jsonify({"status": 1, "error": "Invalid token"}), 401
     if not pm2_5:
         return jsonify({"status": 1, "error": "pm2_5 is required"}), 400
     data.add_pm2_5(pm2_5, time)
@@ -112,7 +140,7 @@ def get_pm2_5():
 
 @app.after_request
 def after_request(response):
-    response.headers.add('Access-Control-Allow-Origin', 'https://wt.gemen.pp.ua')
+    response.headers.add('Access-Control-Allow-Origin', os.environ['ORIGIN'])
     response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
     response.headers.add('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
     return response
