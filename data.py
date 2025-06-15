@@ -18,7 +18,7 @@ _cache = {
     "data": None,
     "timestamp": 0.0
 }
-CACHE_TTL = 90  # 缓存有效期（秒）
+CACHE_TTL = 120  # 缓存有效期（秒）
 
 def get_redis_data():
     url = f"{UPSTASH_REDIS_REST_URL}/get/{REDIS_KEY}"
