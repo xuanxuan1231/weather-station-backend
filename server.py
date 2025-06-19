@@ -143,54 +143,27 @@ def get_humidity():
     ), 200
 
 
-# 新增气压接口
-@app.route("/api/pressure", methods=["POST"])
-def add_pressure():
-    pressure = request.json["pressure"]
-    time = datetime.datetime.now().isoformat()
-    if request.headers["Token"] != token:
-        return jsonify({"status": 1, "error": "Invalid token"}), 401
-    if not pressure:
-        return jsonify({"status": 1, "error": "pressure is required"}), 400
-    data.add_pressure(pressure, time)
-    return jsonify({"status": 0, "pressure": pressure, "time": time}), 200
-
-
 @app.route("/api/pressure", methods=["GET"])
 def get_pressure():
-    pressure_data = data.get_pressure()
-    if "error" in pressure_data:
-        return jsonify({"status": 1, "error": pressure_data["error"]}), 500, 
-    return jsonify(
-        {
+    city = "北京"  # 可根据实际需求动态获取
+    url = f"https://weatherapi.market.xiaomi.com/wtr-v3/weather/all?latitude=0&longitude=0&locationKey=weathercn:101010100&appKey=weather20151024&sign=zUFJoAR2ZVrDy1vF3D07&isGlobal=false&locale=zh_cn"
+    try:
+        resp = requests.get(url, timeout=5)
+        if resp.status_code != 200:
+            return jsonify({"status": 1, "error": "Failed to fetch from Xiaomi Weather"}), 500
+        weather = resp.json()
+        # 假设返回结构如下，请根据实际API返回结构调整
+        pressure = weather["current"]["pressure"]["value"]
+        time = weather["current"]["pubTime"]
+        if pressure is None:
+            return jsonify({"status": 1, "error": "No pressure data from Xiaomi Weather"}), 500
+        return jsonify({
             "status": 0,
-            "pressure": pressure_data["pressure"],
-            "time": pressure_data["time"],
-        }
-    ), 200
-
-
-# 新增pm2.5接口
-@app.route("/api/pm2_5", methods=["POST"])
-def add_pm2_5():
-    pm2_5 = request.json["pm2_5"]
-    time = datetime.datetime.now().isoformat()
-    if request.headers["Token"] != token:
-        return jsonify({"status": 1, "error": "Invalid token"}), 401
-    if not pm2_5:
-        return jsonify({"status": 1, "error": "pm2_5 is required"}), 400
-    data.add_pm2_5(pm2_5, time)
-    return jsonify({"status": 0, "pm2_5": pm2_5, "time": time}), 200
-
-
-@app.route("/api/pm2_5", methods=["GET"])
-def get_pm2_5():
-    pm2_5_data = data.get_pm2_5()
-    if "error" in pm2_5_data:
-        return jsonify({"status": 1, "error": pm2_5_data["error"]}), 500
-    return jsonify(
-        {"status": 0, "pm2_5": pm2_5_data["pm2_5"], "time": pm2_5_data["time"]}
-    ), 200
+            "pressure": pressure,
+            "time": time
+        }), 200
+    except Exception as e:
+        return jsonify({"status": 1, "error": str(e)}), 500
 
 
 @app.after_request
